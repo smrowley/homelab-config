@@ -1,0 +1,39 @@
+eth_interfaces:
+  - name: eth0
+    description: Local 0
+    address: 192.168.10.1/24
+    type: lan
+    dhcp_server:
+      name: eth0_dhcp
+      subnet: 192.168.10.0/24
+      router: "192.168.10.1"
+      start: "192.168.10.64"
+      stop: "192.168.10.255"
+  - name: eth1
+    description: Local 1
+    address: 192.168.11.1/24
+    type: lan
+    dhcp_server:
+      name: eth1_dhcp
+      subnet: 192.168.11.0/24
+      router: "192.168.11.1"
+      start: "192.168.11.64"
+      stop: "192.168.11.255"
+  - name: eth2
+    description: Local 2
+    address: 192.168.12.1/24
+    type: lan
+    dhcp_server:
+      name: eth2_dhcp
+      subnet: 192.168.12.0/24
+      router: "192.168.12.1"
+      start: "192.168.12.64"
+      stop: "192.168.12.255"
+  - name: eth3
+    description: Internet
+    address: dhcp
+    type: wan
+users:
+  - name: ubnt
+    pwd: "{{ encrypted_pwd }}"
+    access: admin

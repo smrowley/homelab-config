@@ -6,17 +6,22 @@
 
   tasks:
 
-    - name: Setup authorized_keys
-      ansible.posix.authorized_key:
-        user: ubnt
-        key: "{{ lookup('file', public_key_path) }}"
+    - name: Setup ssh config
+      when:
+        - public_key_path is defined
+        - public_key_path != ''
+        - private_key_path is defined
+        - private_key_path != ''
+      block:
+        - name: Setup authorized_keys
+          ansible.posix.authorized_key:
+            user: ubnt
+            key: "{{ lookup('file', public_key_path) }}"
 
-    - name: Remove ansible_ssh_pass to switch to key-based auth
-      ansible.builtin.set_fact:
-        ansible_ssh_pass: null
-        ansible_ssh_private_key_file: "{{ private_key_path }}"
-        
-  when: public_key_path is defined and public_key_path != '' and private_key_path is defined and private_key_path != ''
+        - name: Remove ansible_ssh_pass to switch to key-based auth
+          ansible.builtin.set_fact:
+            ansible_ssh_pass: null
+            ansible_ssh_private_key_file: "{{ private_key_path }}"
 
 - name: Config edgerouter4
   hosts: edgerouter4
@@ -54,90 +59,19 @@
       ansible.builtin.debug:
         msg: "backup location: {{ edgeos_backup_location }}"
 
-    # - name: Generate configuration from Jinja2 template
-    #   ansible.builtin.template:
-    #     src: edgerouter_config.j2
-    #     dest: /tmp/edgerouter_config.txt
-    #     mode: "0664"
-
     - name: Configure edgeos
       community.network.edgeos_config:
         src: templates/edgerouter_config.j2
         save: true
         comment: ansible config
-      vars:
-        eth_interfaces:
-          - name: eth0
-            description: Local 0
-            address: 192.168.10.1/24
-            type: lan
-            dhcp_server:
-              name: eth0_dhcp
-              subnet: 192.168.10.0/24
-              router: "192.168.10.1"
-              start: "192.168.10.101"
-              stop: "192.168.10.255"
-          - name: eth1
-            description: Local 1
-            address: 192.168.11.1/24
-            type: lan
-            dhcp_server:
-              name: eth1_dhcp
-              subnet: 192.168.11.0/24
-              router: "192.168.11.1"
-              start: "192.168.11.101"
-              stop: "192.168.11.255"
-          - name: eth2
-            description: Local 2
-            address: 192.168.12.1/24
-            type: lan
-            dhcp_server:
-              name: eth2_dhcp
-              subnet: 192.168.12.0/24
-              router: "192.168.12.1"
-              start: "192.168.12.101"
-              stop: "192.168.12.255"
-          - name: eth3
-            description: Internet
-            address: dhcp
-            type: wan
-        users:
-          - name: ubnt
-            pwd: "{{ encrypted_pwd }}"
-            access: admin
-
 
 - name: Additional Installs
   hosts: edgerouter4
   remote_user: ubnt
   become: true
 
-  tasks:
+  vars_files:
+    - node_exporter.yaml
 
-    - name: Install node_exporter for Prometheus metrics collection
-      ansible.builtin.include_role:
-        name: geerlingguy.node_exporter
-      vars:
-        node_exporter_version: 1.5.0
-        node_exporter_arch: mips64
-        node_exporter_bin_path: /usr/bin/node_exporter
-        node_exporter_options:
-          --collector.systemd
-          --collector.logind
-          --no-collector.bonding
-          --no-collector.hwmon
-          --no-collector.infiniband
-          --no-collector.ipvs
-          --no-collector.mdadm
-          --no-collector.nfs
-          --no-collector.nfsd
-          --no-collector.powersupplyclass
-          --no-collector.zfs
-          --no-collector.xfs
-          --no-collector.thermal_zone
-          --no-collector.schedstat
-          --no-collector.rapl
-          --no-collector.btrfs
-          --no-collector.bcache
-          --no-collector.cpufreq
-          --no-collector.edac
+  roles:
+    - role: geerlingguy.node_exporter
